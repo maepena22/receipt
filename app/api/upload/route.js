@@ -11,6 +11,7 @@ export const config = {
 };
 
 export async function POST(request) {
+    const db = await getDb();
     try {
         const formData = await request.formData();
         const uploadedFiles = formData.getAll('files');
@@ -18,7 +19,6 @@ export async function POST(request) {
         const receiptTypesJson = formData.get('receiptTypes');
 
         // Get employee data
-       
         const employee = await db.get('SELECT * FROM employees WHERE id = ?', [employeeId]);
         if (!employee) {
             return NextResponse.json({ error: 'Employee not found' }, { status: 400 });
@@ -57,7 +57,6 @@ export async function POST(request) {
         }
 
         // Fetch full receipt type data including fields
-        const db = await getDb();
         const fullReceiptTypes = await Promise.all(
             receiptTypes.map(async (typeId) => {
                 const type = await db.get('SELECT * FROM receipt_types WHERE id = ?', [typeId]);
@@ -91,5 +90,7 @@ export async function POST(request) {
     } catch (error) {
         console.error('Upload process failed', error);
         return NextResponse.json({ error: 'Upload process failed' }, { status: 500 });
+    } finally {
+        await db.close();
     }
 }
