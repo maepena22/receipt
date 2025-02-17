@@ -321,9 +321,9 @@ async function saveReceipt(receiptData) {
             const result = await db.run(
                 'INSERT INTO receipts (image_path, receipt_type_id, data, employee_id, created_at) VALUES (?, ?, ?, ?, ?)',
                 [
-                    receipt.image,
-                    receipt.type,
-                    JSON.stringify(receipt.fields),
+                    receipt.image_path, // Corrected from receipt.image
+                    receipt.receipt_type_id, // Corrected from receipt.type
+                    receipt.data,
                     receipt.employee_id,
                     receipt.created_at
                 ]

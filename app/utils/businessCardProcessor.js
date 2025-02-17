@@ -74,34 +74,50 @@ async function structureReceiptDataUsingChatGPT(text, receiptTypes, openaiApiKey
     });
 
     const prompt = `
-    Extract the following receipt information from the given text and return the result as a structured JSON array. 
-    Each object in the array should correspond to one of the receipt types provided.
-    Only include fields that are actually present in the text, omit fields if no relevant information is found.
-    Do not make up or assume any values.
-    Do not include anything else, only the JSON array.
-    Text:
+    Analyze this receipt and respond with ONLY a JSON object in this exact format:
+    {
+        "fields": {
+            "receipt_type_id": (number matching one of the IDs below),
+            "field1": "value1",
+            "field2": "value2"
+        }
+    }
+
+    Receipt Text:
     ${text}
 
-    Expected Structure:
-    [
-        ${jsonStructures.map(struct => `{
-            "type": "${struct.type}",
-            "fields": ${JSON.stringify(struct.fields, null, 4)}
-        }`).join(',\n')}
-    ]`;
+    Available Types and Fields:
+    ${receiptTypes.map(type => `Type ${type.id}: ${type.name}
+    Required Fields: ${type.fields.map(f => f.name).join(', ')}`).join('\n')}`;
 
     try {
         const response = await openai.createChatCompletion({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: prompt }],
+            model: "gpt-4",
+            messages: [{ 
+                role: "system", 
+                content: "You are a JSON generator. Output ONLY valid JSON without any explanation or markdown." 
+            }, { 
+                role: "user", 
+                content: prompt 
+            }],
             max_tokens: 1000,
             temperature: 0,
         });
 
-        return response.data.choices[0].message.content;
+        let content = response.data.choices[0].message.content.trim();
+        
+        // Remove any non-JSON text
+        const jsonStart = content.indexOf('{');
+        const jsonEnd = content.lastIndexOf('}') + 1;
+        content = content.slice(jsonStart, jsonEnd);
+        
+        // Validate JSON
+        JSON.parse(content);
+        
+        return content;
     } catch (error) {
         console.error(`Error while processing the request: ${error}`);
-        return "Error processing the receipt.";
+        throw error;
     }
 }
 
@@ -131,12 +147,26 @@ async function processUploadedImages(files, googleApiKey, openaiApiKey, employee
             );
 
             try {
-                const jsonData = JSON.parse(structuredData);
-                // Add metadata to each receipt type result
+                let jsonData = JSON.parse(structuredData);
+                if (!Array.isArray(jsonData)) {
+                    jsonData = [jsonData];
+                }
+                
+                // Add metadata to each receipt
                 jsonData.forEach(receipt => {
-                    receipt.image = file.originalname;
-                    receipt.employee_id = employeeId;
+                    // Log the filename to verify its value
+                    console.log(`Filename for ${file.originalname}:`, file.filename);
+                    
+                    // Ensure all required fields are set
+                    receipt.image_path = file.filename || 'default_filename'; // Use a default if undefined
+                    receipt.employee_id = parseInt(employeeId, 10); // Convert to integer
                     receipt.created_at = new Date().toISOString();
+                    receipt.receipt_type_id = receipt.fields.receipt_type_id;
+                    receipt.data = JSON.stringify(receipt.fields);
+                    delete receipt.fields;
+
+                    // Log the receipt data to verify all fields
+                    console.log(`Receipt data for ${file.originalname}:`, receipt);
                 });
                 
                 await saveReceipt(jsonData);
