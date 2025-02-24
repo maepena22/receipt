@@ -6,8 +6,7 @@ export default function ReceiptTypes() {
     const [receiptTypes, setReceiptTypes] = useState([]);
     const [newType, setNewType] = useState({
         name: '',
-        description: '',
-        fields: [{ name: '', description: '', isRequired: false }]
+        description: ''
     });
     const [editingType, setEditingType] = useState(null);
     const [activeTab, setActiveTab] = useState('create'); // 'create' or 'list'
@@ -22,53 +21,30 @@ export default function ReceiptTypes() {
         setReceiptTypes(data);
     };
 
-    const addField = () => {
-        setNewType(prev => ({
-            ...prev,
-            fields: [...prev.fields, { name: '', description: '', isRequired: false }]
-        }));
-    };
-
-    const removeField = (index) => {
-        setNewType(prev => ({
-            ...prev,
-            fields: prev.fields.filter((_, i) => i !== index)
-        }));
-    };
-
-    const updateField = (index, field) => {
-        setNewType(prev => ({
-            ...prev,
-            fields: prev.fields.map((f, i) => i === index ? field : f)
-        }));
-    };
-
     const handleEdit = (type) => {
         setEditingType(type);
         setNewType({
             id: type.id,
             name: type.name,
-            description: type.description,
-            fields: type.fields || []
+            description: type.description
         });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!newType.name || newType.fields.some(f => !f.name)) return;
+        if (!newType.name) return;
 
         try {
             const response = await fetch('/api/receipt-types', {
                 method: editingType ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newType),
+                body: JSON.stringify({ name: newType.name, description: newType.description }),
             });
 
             if (response.ok) {
                 setNewType({
                     name: '',
-                    description: '',
-                    fields: [{ name: '', description: '', isRequired: false }]
+                    description: ''
                 });
                 setEditingType(null);
                 fetchReceiptTypes();
@@ -157,76 +133,6 @@ export default function ReceiptTypes() {
                                     rows="3"
                                 />
                             </div>
-
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Fields *
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={addField}
-                                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                                    >
-                                        <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                                        </svg>
-                                        Add Field
-                                    </button>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {newType.fields.map((field, index) => (
-                                        <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        Field Name *
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={field.name}
-                                                        onChange={(e) => updateField(index, { ...field, name: e.target.value })}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                                                        placeholder="e.g., Total Amount"
-                                                        required
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        Field Description
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={field.description}
-                                                        onChange={(e) => updateField(index, { ...field, description: e.target.value })}
-                                                        className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                                                        placeholder="e.g., Total amount including tax"
-                                                    />
-                                                </div>
-                            </div>
-                                            <div className="flex justify-between items-center mt-3">
-                                                <label className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={field.isRequired}
-                                                        onChange={(e) => updateField(index, { ...field, isRequired: e.target.checked })}
-                                                        className="rounded border-gray-300 text-red-600 focus:ring-red-500"
-                                                    />
-                                                    <span className="text-sm text-gray-600">Required Field</span>
-                                                </label>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeField(index)}
-                                                    className="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                                                >
-                                                    Remove
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
 
                         <div className="flex justify-end">
@@ -237,8 +143,7 @@ export default function ReceiptTypes() {
                                         setEditingType(null);
                                         setNewType({
                                             name: '',
-                                            description: '',
-                                            fields: [{ name: '', description: '', isRequired: false }]
+                                            description: ''
                                         });
                                         setActiveTab('list');
                                     }}
@@ -294,31 +199,6 @@ export default function ReceiptTypes() {
                                         </button>
                                     </div>
                                 </div>
-                                
-                                {type.fields && type.fields.length > 0 && (
-                                    <div className="mt-4">
-                                        <h4 className="text-sm font-medium text-gray-900 mb-2">Fields:</h4>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            {type.fields.map((field, index) => (
-                                                <div key={index} className="bg-gray-50 p-3 rounded-md">
-                                                    <div className="flex items-start justify-between">
-                                                        <div>
-                                                            <p className="text-sm font-medium text-gray-900">{field.name}</p>
-                                                            {field.description && (
-                                                                <p className="text-xs text-gray-500 mt-0.5">{field.description}</p>
-                                                            )}
-                                                        </div>
-                                                        {field.isRequired && (
-                                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
-                                                                Required
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
                     ))}

@@ -54,7 +54,7 @@ async function initializeDb() {
 }
 
 // Add new functions for receipt type management
-async function addReceiptType(name, description, fields) {
+async function addReceiptType(name, description) {
     const db = await getDb();
     try {
         await db.run('BEGIN TRANSACTION');
@@ -64,14 +64,6 @@ async function addReceiptType(name, description, fields) {
             'INSERT INTO receipt_types (name, description) VALUES (?, ?)',
             [name, description]
         );
-        
-        // Insert fields
-        for (const field of fields) {
-            await db.run(
-                'INSERT INTO receipt_fields (receipt_type_id, field_name, field_description, is_required) VALUES (?, ?, ?, ?)',
-                [typeResult.lastID, field.name, field.description, field.isRequired]
-            );
-        }
         
         await db.run('COMMIT');
         return { id: typeResult.lastID };
@@ -83,6 +75,7 @@ async function addReceiptType(name, description, fields) {
     }
 }
 
+// Remove functions related to receipt fields
 async function addReceiptField(receiptTypeId, fieldName, fieldDescription, isRequired) {
     const db = await getDb();
     const result = await db.run(

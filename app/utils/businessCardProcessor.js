@@ -60,19 +60,6 @@ async function structureReceiptDataUsingChatGPT(text, receiptTypes, openaiApiKey
     });
     const openai = new OpenAI.OpenAIApi(configuration);
 
-    // Create dynamic JSON structure based on receipt types
-    const jsonStructures = receiptTypes.map(type => {
-        const fieldStructure = type.fields.reduce((acc, field) => {
-            acc[field.name] = field.description || `${field.name} value`;
-            return acc;
-        }, {});
-
-        return {
-            type: type.name,
-            fields: fieldStructure
-        };
-    });
-
     const prompt = `
     Prefer japanese language over english, only use english if it is indicated, do not try to translate to english.
     Analyze this receipt and respond with ONLY a JSON object in this exact format:
@@ -80,17 +67,18 @@ async function structureReceiptDataUsingChatGPT(text, receiptTypes, openaiApiKey
         "fields": {            
             "receipt_type_id": the id of receipt type you chosen,
             "receipt_type_name": "the name of receipt type you chosen",
-            ... chosen fields of the receipt type
+            "date": "date value",
+            "company_name": "company name value",
+            "price": "price value"
         }
     }
 
     Receipt Text:
     ${text}
 
-    pick the correct type you think or the closest one you think and select from the given fields only of the selected type:
-    Available Types and Fields:
-    ${receiptTypes.map(type => `Type ${type.id}: ${type.name}
-    Required Fields: ${type.fields.map(f => f.name).join(', ')}`).join('\n')}`;
+    pick the correct type you think or the closest one you think from the available types:
+    Available Types:
+    ${receiptTypes.map(type => `Type ${type.id}: ${type.name}`).join('\n')}`;
 
     try {
         const response = await openai.createChatCompletion({
